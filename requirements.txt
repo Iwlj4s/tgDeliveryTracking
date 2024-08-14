@@ -1,2 +1,5 @@
 python-dotenv
 aiogram
+selenium
+beautifulsoup4
+requests
