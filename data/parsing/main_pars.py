@@ -19,7 +19,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from checks.user_check import track_number_check
 
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
