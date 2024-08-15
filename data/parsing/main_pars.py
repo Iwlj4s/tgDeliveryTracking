@@ -3,6 +3,7 @@ import logging
 import time
 import sys
 import os
+import ssl
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -52,12 +53,15 @@ class Driver(ParsSettings):
         super().__init__()
 
         self.chrome_options = Options()
-        self.chrome_options.add_argument("--ignore-certificate-errors") 
+        self.chrome_options.add_argument('--ignore-certificate-errors')
+        self.chrome_options.add_argument('--ignore-ssl-errors')
+        self.chrome_options.add_argument('--ignore-certificate-errors-spki-list')
         self.chrome_options.add_argument("--allow-running-insecure-content")
         self.chrome_options.add_argument("--allow-insecure-localhost") 
         self.chrome_options.add_argument("--disable-web-security")  
-        self.chrome_options.add_argument("--no-sandbox")  
         self.chrome_options.add_argument("--incognito")
+        self.chrome_options.add_argument("--auto-open-devtools-for-tabs")  # Открытие инструментов разработчика
+
         # self.chrome_options.add_argument("--headless")  # background start
 
         self.driver = None
@@ -109,6 +113,7 @@ class Driver(ParsSettings):
                 self.initialize_driver()
             logger.info(f"Try to open URL: {self.user_tracking_url}")
             self.driver.get(self.user_tracking_url)
+            print(self.driver.page_source)  # Вывод HTML-кода страницы для отладки
 
             WebDriverWait(self.driver, 30).until(  # Увеличьте время ожидания
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
@@ -217,6 +222,7 @@ class Driver(ParsSettings):
 
         try:
             self.response = requests.get(self.user_tracking_url)
+            print(self.response.text)
             logger.info(f"Successfully request to {self.user_tracking_url}")
 
         except requests.exceptions.RequestException as e:
