@@ -1,4 +1,5 @@
 import requests
+import logging
 import time
 import sys
 import os
@@ -15,9 +16,9 @@ from bs4 import BeautifulSoup
 
 # My Imports #
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from checks.user_check import track_number_check
 
-import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
