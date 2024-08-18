@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class ParsSettings:
     def __init__(self) -> None:
         self.pochta_ru_url = "https://www.pochta.ru/tracking"  # "Pochta ru" tracking web site
-        # self.seventeen_track_url = "https://m.17track.net/ru/"  # 17Track tracking web site
+        # self.seventeen_track_url = "https://m.17track.net/ru/"  # 17Track tracking website
 
         self.user_tracking_url = None
 
@@ -34,9 +34,10 @@ class ParsSettings:
         self.user_track_find_button = None
 
         # I guess I delete this const next time, but for now it's will be here #
-        self.pochta_ru_tracking_region = None  # If region == Russia -> track number consist of 14 digits, if region == International -> track number consist of 13 characters
+        self.pochta_ru_tracking_region = None  # If region == Russia -> track number consist of 14 digits, if region
+        # == International -> track number consist of 13 characters
 
-        # !! International track has digits AND charackters !! #
+        # !! International track has digits AND characters !! #
         self.pochta_ru_tracking_numbers_amount = None
 
         self.user_tracking_numbers = None
@@ -53,21 +54,20 @@ class Driver(ParsSettings):
 
         self.chrome_options = Options()
         self.chrome_options.add_argument('--ignore-certificate-errors')
-        # self.chrome_options.add_argument('--ignore-ssl-errors')
-        # self.chrome_options.add_argument('--ignore-certificate-errors-spki-list')
         self.chrome_options.add_argument("--allow-running-insecure-content")
-        self.chrome_options.add_argument("--allow-insecure-localhost") 
-        self.chrome_options.add_argument("--disable-web-security")  
+        self.chrome_options.add_argument("--allow-insecure-localhost")
+        self.chrome_options.add_argument("--disable-web-security")
         self.chrome_options.add_argument("--incognito")
         # self.chrome_options.add_argument("--auto-open-devtools-for-tabs")  
 
         # self.chrome_options.add_argument("--headless")  # background start
 
         self.driver = None
+        self.response = None
         self.new_html = None
         self.soup = None
 
-        self.developer_service_error = "Unknow developer service"
+        self.developer_service_error = "Unknown developer service"
 
     # DRIVER INIT #
     def initialize_driver(self):
@@ -85,31 +85,31 @@ class Driver(ParsSettings):
             try:
                 self.driver.quit()
             except Exception as e:
-                logger.warning(f"Clsoe Driver Error: {e}")
+                logger.warning(f"Close Driver Error: {e}")
             finally:
                 self.driver = None
 
     # Getting User's URL #
-    # What delivery use? (Pochta ru / CDEK)
-    def get_user_url(self, user_url: str) -> str:
-        user_url = user_url.strip().lower()  
-        logger.info(f"User inputed url: '{user_url}'")
+    # What delivery use? 
+    def get_user_url(self, user_url: str):
+        user_url = user_url.strip().lower()
+        logger.info(f"User inputted url: '{user_url}'")
 
         if user_url == "почта россии":
             self.user_tracking_url = self.pochta_ru_url
             logger.info(f"New URL: {self.user_tracking_url}")
 
         else:
-            logger.error(f"Unknow developer service: '{user_url}'")
+            logger.error(f"Unknown developer service: '{user_url}'")
             return print(self.developer_service_error)
 
         try:
             if not self.driver:
                 self.initialize_driver()
             logger.info(f"Try to open URL: {self.user_tracking_url}")
-            self.driver.get(self.user_tracking_url) 
+            self.driver.get(self.user_tracking_url)
 
-            WebDriverWait(self.driver, 30).until(  
+            WebDriverWait(self.driver, 30).until(
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
             logger.info("Page successfully load")
@@ -127,10 +127,9 @@ class Driver(ParsSettings):
         return self.user_tracking_url
 
     # Load components func
-    def laod_components(self):
+    def load_components(self):
         # If user url = Pochta ru #
         if self.user_tracking_url == self.pochta_ru_url:
-
             # Wait Input
             self.user_track_input = WebDriverWait(self.driver, 3).until(
                 EC.presence_of_element_located((By.ID, "tracking-toolbar__search-input"))
@@ -144,7 +143,7 @@ class Driver(ParsSettings):
             logger.info("Button find")
 
     # Get ! amount ! tracking numbers for Pochta ru #
-    # If delivery == Pochta ru -> geting track region (ru / international)
+    # If delivery == Pochta ru -> getting track region (ru / international)
     def get_user_track_region(self, user_track_region: str) -> str:
         if str(user_track_region) == str("россия").lower():
             self.pochta_ru_tracking_region = str("ru")
@@ -156,8 +155,8 @@ class Driver(ParsSettings):
 
         return self.pochta_ru_tracking_region
 
-    # Geting user tracking numbers    
-    def get_user_tracking_numbers(self, user_tracking_numbers: str) -> str:
+    # Getting user tracking numbers
+    def get_user_tracking_numbers(self, user_tracking_numbers: str):
         if track_number_check(user_track_numbers=user_tracking_numbers,
                               track_numbers_amount=self.pochta_ru_tracking_numbers_amount):
             print("In main pars, user_tracking_numbers: ", user_tracking_numbers)
@@ -175,7 +174,7 @@ class Driver(ParsSettings):
 
             time.sleep(3)
 
-            logger.info(f"User inputed TRACK: {user_tracking_numbers}")
+            logger.info(f"User inputted TRACK: {user_tracking_numbers}")
 
             self.user_track_find_button.click()
             logger.info("Search Button")
@@ -198,7 +197,7 @@ class Driver(ParsSettings):
             return None
 
         # loading input and search button
-        self.laod_components()
+        self.load_components()
 
         try:
             self.response = requests.get(self.user_tracking_url)
@@ -212,7 +211,7 @@ class Driver(ParsSettings):
         # 2. If delivery == Pochta ru -> geting track region (ru / international)
         self.get_user_track_region = self.get_user_track_region(str(user_track_region))
 
-        # 3. Geting user tracking numbers (Pochta ru / CDEK) 
+        # 3. Getting user tracking numbers (Pochta ru / CDEK)
         self.get_user_tracking_numbers(user_tracking_numbers=str(user_tracking_numbers))
 
         # 4. Enter in input user tracking digits 
@@ -234,6 +233,7 @@ class GetTrackData(Driver, ParsSettings):
     def __init__(self) -> None:
         super().__init__()
         self.track_title = None
+        self.track_location = None
         self.track_numbers = None
         self.track_status = None
         self.track_info = None
@@ -243,15 +243,23 @@ class GetTrackData(Driver, ParsSettings):
     # Get Data For Pochta Ru #
     def get_pochta_ru_data(self):
 
+        # Track title  
         self.track_title = self.soup.find('div', class_='hubGBa')
         self.track_title = self.track_title.text if self.track_title else None
 
+        # Track location
+        self.track_location = self.soup.find('span', class_='hftVBh')
+        self.track_location = self.track_location.text if self.track_location else ""
+
+        # Track numbers
         self.track_numbers = self.soup.find('span', class_='hoxweJ')
         self.track_numbers = self.track_numbers.text.split('<')[0] if self.track_numbers else None
 
+        # Track status
         self.track_status = self.soup.find('span', class_='fYSIwJ')
         self.track_status = self.track_status.text if self.track_status else None
 
+        # Track info
         self.track_info = self.soup.find('div', class_='ccIMJb')
         if self.track_info:
             self.track_info_title = self.track_info.find('p', class_='icMJRk')
@@ -259,7 +267,6 @@ class GetTrackData(Driver, ParsSettings):
 
             self.track_info_description = self.track_info.find('p', class_='gPYwYo')
             self.track_info_description = self.track_info_description.text if self.track_info_description else None
-
 
     def get_track_data(self, user_url: str,
                        user_track_region: str,
@@ -292,8 +299,8 @@ class GetTrackData(Driver, ParsSettings):
 
 def main():
     user_url_input = str("почта россии")
-    user_track_region_input = str("россия")
-    user_tracking_numbers_input = str("14598787026595")
+    user_track_region_input = str("международный")
+    user_tracking_numbers_input = str("ZA281165674CN")
 
     track_data = GetTrackData()
     track_data.get_track_data(user_url=user_url_input,
@@ -302,11 +309,11 @@ def main():
 
     print("Track title: ", track_data.track_title)
     print("Track numbers: ", track_data.track_numbers)
+    print("Track location: ", track_data.track_location)
     print("Track status: ", track_data.track_status)
     print("Track info title: ", track_data.track_info_title)
     print("Track info description: ", track_data.track_info_description)
 
     track_data.quit_driver()
 
-
-main()
+# main()
