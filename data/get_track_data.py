@@ -31,18 +31,18 @@ user_url_input = str("почта россии")
 user_track_region_input = str("международный")
 user_tracking_numbers_input = str("ZA281165674CN")
 
-# (track_title, track_numbers,
-#  track_location,
-#  track_status,
-#  track_info_title,
-#  track_info_description) = get_track_data_for_user(
-#     user_url=user_url_input,
-#     user_track_region=user_track_region_input,
-#     user_tracking_numbers=user_tracking_numbers_input)
-#
-# print("Track title: ", track_title)
-# print("Track numbers: ", track_numbers)
-# print("Track: ", track_location)
-# print("Track status: ", track_status)
-# print("Track info title: ", track_info_title)
-# print("Track info description: ", track_info_description)
+(track_title, track_numbers,
+ track_location,
+ track_status,
+ track_info_title,
+ track_info_description) = get_track_data_for_user(
+    user_url=user_url_input,
+    user_track_region=user_track_region_input,
+    user_tracking_numbers=user_tracking_numbers_input)
+
+print("Track title: ", track_title)
+print("Track numbers: ", track_numbers)
+print("Track: ", track_location)
+print("Track status: ", track_status)
+print("Track info title: ", track_info_title)
+print("Track info description: ", track_info_description)
