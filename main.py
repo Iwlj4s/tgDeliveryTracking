@@ -1,6 +1,3 @@
-# ADD YOUR BOT TOKEN AT ".env" FILE ! #
-# AND YOU SHOULD ADD ".env" FILE AT ".gitignore" FILE !!! #
-
 import asyncio
 import logging
 import os
@@ -32,5 +29,4 @@ async def main():
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     asyncio.run(main())
-
 

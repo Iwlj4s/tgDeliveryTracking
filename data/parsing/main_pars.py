@@ -40,12 +40,15 @@ class ParsSettings:
         # !! International track has digits AND characters !! #
         self.pochta_ru_tracking_numbers_amount = None
 
-        self.user_tracking_numbers = None
+        self.user_tracking_numbers = ""
+
+        self.user_data = {}
 
         self.track_number_error = str(
-            "Ваш трек номер содержит ошибку, пожалуйста проверьте его. "
-            "\nДля отправлений по России трек-номер состоит из 14 цифр."
-            "\n Для международных — из 13 символов, в нём используются латинские заглавные буквы и цифры.")
+            "Ваш трек номер содержит ошибку, пожалуйста проверьте его.\n"
+            "Для отправлений по России трек-номер состоит из 14 цифр.\n"
+            "Для международных — из 13 символов, в нём используются латинские заглавные буквы и цифры.\n"
+            "\nВведите трек-номер заново")
 
 
 class GetUserData(ParsSettings):
@@ -87,11 +90,13 @@ class GetUserData(ParsSettings):
         if track_number_check(user_track_numbers=user_tracking_numbers,
                               track_numbers_amount=self.pochta_ru_tracking_numbers_amount):
             print("In main pars, user_tracking_numbers: ", user_tracking_numbers)
-            return self.user_tracking_numbers == str(user_tracking_numbers)
+            self.user_tracking_numbers = str(user_tracking_numbers)  # Исправлено
+            return True
 
         else:
-            print(str(self.track_number_error))
-            return self.user_tracking_numbers == str(self.track_number_error)
+            self.user_tracking_numbers = None
+            self.user_data = {"error": self.track_number_error}
+            return False
 
 
 class Driver(GetUserData, ParsSettings):
@@ -175,7 +180,7 @@ class Driver(GetUserData, ParsSettings):
             self.driver.quit()
             return None
 
-    # Enter in input user tracking digits 
+    # Enter in input user tracking digits
     def enter_in_input_tracking_digits(self, user_tracking_numbers: str):
         try:
             # self.user_track_input.clear()
@@ -224,9 +229,10 @@ class Driver(GetUserData, ParsSettings):
         self.get_user_track_region = self.get_user_track_region(str(user_track_region))
 
         # 3. Getting user tracking numbers (Pochta ru / Other)
-        self.user_tracking_numbers = self.get_user_tracking_numbers(user_tracking_numbers=str(user_tracking_numbers))
+        if not self.get_user_tracking_numbers(user_tracking_numbers=str(user_tracking_numbers)):  # Исправлено
+            return self.user_data.get("error")  # Исправлено
 
-        # 4. Enter in input user tracking digits 
+        # 4. Enter in input user tracking digits
         self.enter_in_input_tracking_digits(user_tracking_numbers=user_tracking_numbers)
 
         time.sleep(3)
@@ -296,6 +302,16 @@ class GetTrackData(Driver, ParsSettings):
                 if self.user_tracking_url == self.pochta_ru_url:
                     self.get_pochta_ru_data()
 
+                    self.user_data = {
+                        "track_title": self.track_title,
+                        "track_location": self.track_location,
+                        "track_numbers": self.track_numbers,
+                        "track_status": self.track_status,
+                        "track_info_title": self.track_info_title,
+                        "track_info_description": self.track_info_description
+                    }
+                    return self.user_data
+
                 else:
                     print("No pochta ru url")
 
@@ -311,19 +327,19 @@ class GetTrackData(Driver, ParsSettings):
 def main():
     user_url_input = str("почта россии")
     user_track_region_input = str("международный")
-    user_tracking_numbers_input = str("ZA281165674CN")
+    user_tracking_numbers_input = str("ZA65674CN")
 
     track_data = GetTrackData()
     track_data.get_track_data(user_url=user_url_input,
                               user_track_region=user_track_region_input,
                               user_tracking_numbers=user_tracking_numbers_input)
 
-    print("Track title: ", track_data.track_title)
-    print("Track numbers: ", track_data.track_numbers)
-    print("Track location: ", track_data.track_location)
-    print("Track status: ", track_data.track_status)
-    print("Track info title: ", track_data.track_info_title)
-    print("Track info description: ", track_data.track_info_description)
+    print("Track title: ", track_data.user_data.get("track_title"))
+    print("Track numbers: ", track_data.user_data.get("track_numbers"))
+    print("Track location: ", track_data.user_data.get("track_location"))
+    print("Track status: ", track_data.user_data.get("track_status"))
+    print("Track info title: ", track_data.user_data.get("track_info_title"))
+    print("Track info description: ", track_data.user_data.get("track_info_description"))
 
     track_data.quit_driver()
 

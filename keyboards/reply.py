@@ -8,6 +8,14 @@ main_keyboard = ReplyKeyboardMarkup(
     ]
 )
 
+cancel_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Отмена"),
+        ]
+    ]
+)
+
 choose_track_website_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [

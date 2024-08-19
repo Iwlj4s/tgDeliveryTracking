@@ -4,13 +4,14 @@ from aiogram import F, Router
 from aiogram.filters import CommandStart, Command, StateFilter, or_f
 
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
 
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 
-from data.get_track_data import get_track_data_for_user
 # My Imports #
-from keyboards.reply import main_keyboard, choose_track_website_keyboard, choose_delivery_region_keyboard
+from data.get_track_data import get_track_data_for_user
+
+from keyboards.reply import main_keyboard, choose_track_website_keyboard, choose_delivery_region_keyboard, \
+    cancel_keyboard
 
 from states.states import GetTrack
 
@@ -34,7 +35,7 @@ async def cancel_handler(message: Message, state: FSMContext):
 
     await state.clear()
     print("State Clear")
-    await message.answer("State Clear",
+    await message.answer("Все действия отменены",
                          reply_markup=main_keyboard)
 
 
@@ -84,7 +85,8 @@ async def get_user_delivery_region(message: Message, state: FSMContext):
     await state.update_data(user_delivery_region=message.text.lower())
     print(message.text.lower())
 
-    await message.answer("Введите трек номер: ")
+    await message.answer("Введите трек номер: ",
+                         reply_markup=cancel_keyboard)
     # Go to get user's track state #
     await state.set_state(get_track_states.user_track)
 
@@ -104,22 +106,29 @@ async def get_user_track(message: Message, state: FSMContext):
     print(f"User region: {user_region}")
     print(f"User track: {user_track}")
 
-    (track_title, track_numbers,
-     track_location,
-     track_status,
-     track_info_title,
-     track_info_description) = get_track_data_for_user(
+    data = get_track_data_for_user(
         user_url=user_delivery_service,
         user_track_region=user_region,
         user_tracking_numbers=user_track)
+    print("printing data in user handler",data)
 
-    print("Track title: (in user_handler)", track_title)
+    if data.get("error"):
+        error = data.get("error")
+        print(error)
+        await message.answer(error,
+                             reply_markup=cancel_keyboard)
 
-    await message.answer(f"{track_title}\n"
-                         f"{track_location}\n"
-                         f"{track_status}\n"
-                         f"{track_info_title}\n"
-                         f"{track_info_description}",
-                         reply_markup=main_keyboard)
+        return
+
+    else:
+        print("Track title: (in user_handler)", data.get("track_title"))
+
+        await message.answer(f"{data.get("track_title")}\n"
+                             f"{data.get("track_numbers")}\n"
+                             f"{data.get("track_location")}\n"
+                             f"{data.get("track_status")}\n"
+                             f"{data.get("track_info_title")}\n"
+                             f"{data.get("track_info_description")}",
+                             reply_markup=main_keyboard)
 
     await state.clear()
