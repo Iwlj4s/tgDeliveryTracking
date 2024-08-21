@@ -15,7 +15,7 @@ from bot_commands.bot_commands_list import private
 load_dotenv()
 token = os.getenv("TOKEN")
 
-bot = Bot(token=token)
+bot = Bot(token=token, proxy='http://proxy.server:3128')
 dp = Dispatcher()
 
 dp.include_router(user_private_router)
@@ -29,4 +29,3 @@ async def main():
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     asyncio.run(main())
-

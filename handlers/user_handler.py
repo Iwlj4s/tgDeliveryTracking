@@ -1,11 +1,11 @@
 # Aiogram Imports #
 from aiogram import F, Router
 
-from aiogram.filters import CommandStart, Command, StateFilter, or_f
+from aiogram.filters import CommandStart, StateFilter
 
 from aiogram.fsm.context import FSMContext
 
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message
 
 # My Imports #
 from data.get_track_data import get_track_data_for_user
@@ -13,9 +13,13 @@ from data.get_track_data import get_track_data_for_user
 from keyboards.reply import main_keyboard, choose_track_website_keyboard, choose_delivery_region_keyboard, \
     cancel_keyboard
 
+
+from data.parsing.main_pars import ParsSettings
 from states.states import GetTrack
 
 user_private_router = Router()
+
+pars_settings = ParsSettings()
 get_track_states = GetTrack()  # Import StatesGroup
 
 
@@ -56,6 +60,13 @@ async def get_user_delivery_service(message: Message, state: FSMContext):
     await state.update_data(user_delivery_service=message.text.lower())
     print(message.text.lower())
 
+    if message.text.lower() not in pars_settings.allowed_developing_services:
+
+        await message.answer(pars_settings.unknown_developer_service,
+                             reply_markup=choose_track_website_keyboard)
+
+        return
+
     # If user choose "почта россии" -> he need choose delivery region for get standard for track #
     if message.text.lower() == "почта россии":
         print("User's region == Почта России")
@@ -82,6 +93,12 @@ async def get_user_delivery_service(message: Message, state: FSMContext):
 # Get user's delivery region #
 @user_private_router.message(get_track_states.user_delivery_region, F.text)
 async def get_user_delivery_region(message: Message, state: FSMContext):
+    if message.text.lower() not in pars_settings.allowed_tracking_regions:
+        await message.answer(pars_settings.unknown_developer_region,
+                             reply_markup=choose_delivery_region_keyboard)
+
+        return
+
     await state.update_data(user_delivery_region=message.text.lower())
     print(message.text.lower())
 
@@ -102,15 +119,12 @@ async def get_user_track(message: Message, state: FSMContext):
     user_region = data.get("user_delivery_region")
     user_track = data.get("user_track")
 
-    print(f"Delivery service: {user_delivery_service}")
-    print(f"User region: {user_region}")
-    print(f"User track: {user_track}")
-
     data = get_track_data_for_user(
         user_url=user_delivery_service,
         user_track_region=user_region,
         user_tracking_numbers=user_track)
-    print("printing data in user handler",data)
+
+    print("printing data in user handler", data)
 
     if data.get("error"):
         error = data.get("error")

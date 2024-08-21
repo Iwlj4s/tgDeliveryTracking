@@ -6,4 +6,3 @@ class GetTrack(StatesGroup):
     user_delivery_region = State()
 
     user_track = State()
-

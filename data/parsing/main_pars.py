@@ -28,6 +28,9 @@ class ParsSettings:
         self.pochta_ru_url = "https://www.pochta.ru/tracking"  # "Pochta ru" tracking web site
         # self.seventeen_track_url = "https://m.17track.net/ru/"  # 17Track tracking website
 
+        self.allowed_developing_services = ["почта россии"]
+        self.allowed_tracking_regions = ["россия", "международный"]
+
         self.user_tracking_url = None
 
         self.user_track_input = None
@@ -43,6 +46,11 @@ class ParsSettings:
         self.user_tracking_numbers = ""
 
         self.user_data = {}
+
+        self.unknown_developer_service = str("Неизвестная служба доставки\n"
+                                             "Пожалуйста выберите службу доставки из списка в кнопочном меню")
+        self.unknown_developer_region = str("Неизвестный регион доставки\n"
+                                            "Пожалуйста выберите регион доставки из списка в кнопочном меню")
 
         self.track_number_error = str(
             "Ваш трек номер содержит ошибку, пожалуйста проверьте его.\n"
@@ -67,8 +75,10 @@ class GetUserData(ParsSettings):
             logger.info(f"New URL: {self.user_tracking_url}")
 
         else:
-            logger.error(f"Unknown developer service: '{user_url}'")
-            return print(self.developer_service_error)
+            self.user_tracking_url = ""
+            self.user_data = {"error": self.unknown_developer_service}
+
+            return False
 
         return self.user_tracking_url
 
@@ -206,9 +216,7 @@ class Driver(GetUserData, ParsSettings):
         # 1. What delivery use? (Pochta ru / Other)
         self.user_tracking_url = self.get_user_url(user_url=str(user_url))
         if not self.user_tracking_url:
-            logger.error("No URL. Destruct Operation.")
-
-            return "No URL. Destruct Operation."
+            return self.user_data.get("error")
 
         # Open URL
         self.open_url()
@@ -322,25 +330,3 @@ class GetTrackData(Driver, ParsSettings):
             logger.error(f"Error response data: {e}")
         finally:
             self.quit_driver()
-
-
-def main():
-    user_url_input = str("почта россии")
-    user_track_region_input = str("международный")
-    user_tracking_numbers_input = str("ZA65674CN")
-
-    track_data = GetTrackData()
-    track_data.get_track_data(user_url=user_url_input,
-                              user_track_region=user_track_region_input,
-                              user_tracking_numbers=user_tracking_numbers_input)
-
-    print("Track title: ", track_data.user_data.get("track_title"))
-    print("Track numbers: ", track_data.user_data.get("track_numbers"))
-    print("Track location: ", track_data.user_data.get("track_location"))
-    print("Track status: ", track_data.user_data.get("track_status"))
-    print("Track info title: ", track_data.user_data.get("track_info_title"))
-    print("Track info description: ", track_data.user_data.get("track_info_description"))
-
-    track_data.quit_driver()
-
-# main()
