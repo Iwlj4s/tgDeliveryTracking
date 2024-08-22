@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # My Imports #
 from data.get_track_data import get_track_data_for_user
-from database.orm_query import orm_get_user_tracks, orm_delete_user_track, orm_add_user_track
+from database.orm_query import orm_get_user_tracks, orm_delete_user_track, orm_add_user_track, orm_get_user_track
 from keyboards.inline import get_callback_btns
 
 from keyboards.reply import main_keyboard, choose_track_website_keyboard, choose_delivery_region_keyboard, \
@@ -58,10 +58,32 @@ async def get_my_tracks(message: Message, session: AsyncSession):
                              f"Сервис отслеживания: {user_track.user_delivery_service} \n"
                              f"Регион доставки (если был выбран): {user_track.user_region}",
                              reply_markup=get_callback_btns(btns={
+                                 'Отследить': f'track_user_track_{user_track.id}',
                                  'Изменить': f'change_user_track_{user_track.id}',
                                  'Удалить': f'delete_user_track_{user_track.id}'
                              })
                              )
+
+
+# Track selected track from my track
+@user_private_router.callback_query(F.data.startswith('track_user_track_'))
+async def track_user_track(callback: CallbackQuery, session: AsyncSession):
+    track_id = callback.data.split("_")[-1]
+
+    user_track = await orm_get_user_track(session=session, track_id=int(track_id))
+
+    data = get_track_data_for_user(
+        user_url=user_track.user_delivery_service,
+        user_track_region=user_track.user_region,
+        user_tracking_numbers=user_track.user_track)
+
+    await callback.message.answer(f"{data.get("track_title")}\n"
+                                  f"{data.get("track_numbers")}\n"
+                                  f"{data.get("track_location")}\n"
+                                  f"{data.get("track_status")}\n"
+                                  f"{data.get("track_info_title")}\n"
+                                  f"{data.get("track_info_description")}",
+                                  reply_markup=main_keyboard)
 
 
 # Delete track from my tracks

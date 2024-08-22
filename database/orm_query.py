@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import UserTrack
 
 
+# Add track in my tracks
 async def orm_add_user_track(session: AsyncSession, data: dict, message):
     obj = UserTrack(
         user_tg_id=int(message.from_user.id),
@@ -18,6 +19,7 @@ async def orm_add_user_track(session: AsyncSession, data: dict, message):
     await session.commit()
 
 
+# Get trackS
 async def orm_get_user_tracks(session: AsyncSession, user_id: int):
     query = select(UserTrack).where(UserTrack.user_tg_id == int(user_id))
     result = await session.execute(query)
@@ -25,6 +27,16 @@ async def orm_get_user_tracks(session: AsyncSession, user_id: int):
     return result.scalars().all()
 
 
+# Get track
+async def orm_get_user_track(session: AsyncSession, track_id: int):
+    query = select(UserTrack).where(UserTrack.id == int(track_id))
+    result = await session.execute(query)
+    track = result.scalar()
+
+    return track
+
+
+# Delete track
 async def orm_delete_user_track(session: AsyncSession, track_id: int):
     query = delete(UserTrack).where(UserTrack.id == int(track_id))
     await session.execute(query)
