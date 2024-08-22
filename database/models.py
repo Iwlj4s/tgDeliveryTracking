@@ -12,4 +12,7 @@ class UserTrack(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_tg_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    user_delivery_service: Mapped[str] = mapped_column(Text, nullable=False)
+    user_region: Mapped[str] = mapped_column(Text, nullable=True)
     user_track: Mapped[str] = mapped_column(Text, nullable=False)
+    user_description: Mapped[str] = mapped_column(Text, nullable=True)
