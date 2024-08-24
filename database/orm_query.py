@@ -36,9 +36,34 @@ async def orm_get_user_track(session: AsyncSession, track_id: int):
     return track
 
 
+# Get track id
+async def orm_get_track_id(session: AsyncSession, track_id: int):
+    query = select(UserTrack).where(UserTrack.id == int(track_id))
+    result = await session.execute(query)
+    track = result.scalar()
+
+    return track
+
+
 # Delete track
 async def orm_delete_user_track(session: AsyncSession, track_id: int):
     query = delete(UserTrack).where(UserTrack.id == int(track_id))
     await session.execute(query)
 
     await session.commit()
+
+
+# Update track
+async def orm_update_track(session: AsyncSession, track_id: int, data: dict):
+    query = update(UserTrack).where(UserTrack.id == int(track_id)).values(
+        user_delivery_service=data['user_delivery_service'],
+        user_region=data['user_delivery_region'],
+        user_track=data['user_track'],
+        user_description=data['user_description']
+    )
+
+    result = await session.execute(query)
+
+    await session.commit()
+
+    print(f"User Track updated successfully.")
