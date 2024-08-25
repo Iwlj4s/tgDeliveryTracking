@@ -92,6 +92,10 @@ change_track_website_keyboard = ReplyKeyboardMarkup(
         ],
 
         [
+            KeyboardButton(text="Изменить предыдущее поле")
+        ],
+
+        [
             KeyboardButton(text="Отмена"),  # Cancel Button
         ]
     ]
@@ -106,6 +110,10 @@ change_delivery_region_keyboard = ReplyKeyboardMarkup(
 
         [
             KeyboardButton(text="Пропустить поле"),
+        ],
+
+        [
+            KeyboardButton(text="Изменить предыдущее поле")
         ],
 
         [

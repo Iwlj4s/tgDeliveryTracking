@@ -45,6 +45,17 @@ async def orm_get_track_id(session: AsyncSession, track_id: int):
     return track
 
 
+# Get user by id
+async def orm_get_user_id(session: AsyncSession, user_id: int):
+    query = select(UserTrack).where(UserTrack.user_tg_id == int(user_id))
+    result = await session.execute(query)
+    user_tracks = result.scalars().all()
+
+    print(user_tracks)
+
+    return user_tracks
+
+
 # Delete track
 async def orm_delete_user_track(session: AsyncSession, track_id: int):
     query = delete(UserTrack).where(UserTrack.id == int(track_id))

@@ -10,6 +10,7 @@ from aiogram.types import Message, CallbackQuery
 # sqlalchemy Imports #
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from checks.user_check import track_number_check, track_already_in_db
 # My Imports #
 
 # keyboards
@@ -120,10 +121,13 @@ async def track_user_track(callback: CallbackQuery, session: AsyncSession):
 async def delete_user_track(callback: CallbackQuery, session: AsyncSession):
     track_id = callback.data.split("_")[-1]
 
+    track_number = await orm_get_track_id(session=session, track_id=int(track_id))
+
     await orm_delete_user_track(session=session, track_id=int(track_id))
 
     await callback.answer("Трек номер удален")
-    await callback.message.answer("Трек номер удален из моих треков")
+    await callback.message.answer(f"Трек номер {track_number.user_description} ({track_number.user_track}) "
+                                  f"удален из моих треков")
 
 
 # Change track from my tracks
@@ -163,19 +167,23 @@ async def get_user_description(message: Message, state: FSMContext):
     if message.text == "Пропустить поле":
         if get_track_states.track_for_change is None:  # If user not changing track and want just skip description
             await state.update_data(user_description="Описание не добавлено")
+            await message.answer("Выберите где вы хотите отслеживать посылку",
+                                 reply_markup=change_track_website_keyboard)
 
         elif get_track_states.track_for_change:  # If user changing track and want leave same value
             await state.update_data(user_description=get_track_states.track_for_change.user_description)
-            await message.answer("Описание не изменено",
+            await message.answer("Описание не изменено")
+
+            await message.answer("Выберите где вы хотите отслеживать посылку",
                                  reply_markup=change_track_website_keyboard)
 
     else:
         await state.update_data(user_description=message.text.title())
-
         if get_track_states.track_for_change:
             await message.answer("Выберите где вы хотите отслеживать посылку",
                                  reply_markup=change_track_website_keyboard)
-        if not get_track_states.track_for_change:
+
+        elif not get_track_states.track_for_change:
             await message.answer("Выберите где вы хотите отслеживать посылку",
                                  reply_markup=choose_track_website_keyboard)
 
@@ -205,11 +213,20 @@ async def get_user_delivery_service(message: Message, state: FSMContext):
             await state.set_state(get_track_states.user_delivery_region)
             await message.answer("Служба доставки не изменена",
                                  reply_markup=change_delivery_region_keyboard)
+            await message.answer("Выберите регион доставки\n"
+                                 "Это нужно, чтобы проверить Ваш трек, у почты россии есть стандарты трек номеров\n\n"
+                                 "Трек-номер отправлений по России состоит из 14 цифр. Его вводят без пробелов и "
+                                 "скобок —"
+                                 "например, 45005145009749.\n"
+                                 "Трек-номер международных отправлений состоит из 13 символов, в нём используются "
+                                 "латинские заглавные буквы и цифры. Его также вводят без пробелов и скобок — например,"
+                                 "CA123466789RU.")
 
         else:
             await message.answer("Служба доставки не изменена")
             # Go to get user's track state #
             await state.set_state(get_track_states.user_track)
+            await message.answer("Введите трек номер: ")
 
     else:
         await state.update_data(user_delivery_service=message.text.lower())
@@ -264,6 +281,13 @@ async def get_user_delivery_region(message: Message, state: FSMContext):
             return
 
         await state.update_data(user_delivery_region=message.text.lower())
+
+        if message.text.lower() == str("россия"):
+            await state.update_data(numbers_amount=int(14))
+
+        elif message.text.lower() == str("международный"):
+            await state.update_data(numbers_amount=int(13))
+
         print(message.text.lower())
 
         await message.answer("Введите трек номер: ",
@@ -276,7 +300,6 @@ async def get_user_delivery_region(message: Message, state: FSMContext):
 # Get user's track
 @user_private_router.message(get_track_states.user_track, or_f(F.text, F.text == "Пропустить поле"))
 async def get_user_track(message: Message, state: FSMContext, session: AsyncSession):
-    # TODO: do check for already track in db
     # TODO: do some refactoring
     if message.text == "Пропустить поле":
         if get_track_states.track_for_change is not None:  # If user changing track and want leave same value
@@ -300,33 +323,37 @@ async def get_user_track(message: Message, state: FSMContext, session: AsyncSess
         print(f"User track: {message.text.lower()}")
 
         get_data = await state.get_data()
-        user_delivery_service = get_data.get("user_delivery_service")
-        user_region = get_data.get("user_delivery_region")
-        user_track = get_data.get("user_track")
 
-        data = get_track_data_for_user(
-            user_url=user_delivery_service,
-            user_track_region=user_region,
-            user_tracking_numbers=user_track)
+        if not track_number_check(user_track_numbers=str(get_data.get("user_track")),
+                                  track_numbers_amount=get_data.get("numbers_amount")):
 
-        print("printing data in user handler", data)
-
-        if data.get("error"):
-            error = data.get("error")
-            print(error)
-            await message.answer(error,
+            await message.answer(pars_settings.track_number_error,
                                  reply_markup=cancel_keyboard)
-
             return
 
         else:
             if get_track_states.user_add_track:
-                await orm_add_user_track(session=session, data=get_data, message=message)
+                if await track_already_in_db(track_number=str(get_data.get("user_track")),
+                                             user_id=message.from_user.id, session=session):
+                    await message.answer("Данный трек номер уже занесен в ваши треки\n"
+                                         "Введите другой трек номер или нажмите 'отмена'")
 
-                await message.answer("Трек номер добавлен в 'мои треки'",
-                                     reply_markup=main_keyboard)
+                    return
+
+                else:
+                    await orm_add_user_track(session=session, data=get_data, message=message)
+
+                    await message.answer("Трек номер добавлен в 'мои треки'",
+                                         reply_markup=main_keyboard)
 
             elif not get_track_states.user_add_track:
+                data = get_track_data_for_user(
+                    user_url=get_data.get("user_delivery_service"),
+                    user_track_region=get_data.get("user_delivery_region"),
+                    user_tracking_numbers=get_data.get("user_track"))
+
+                print("printing data in user handler", data)
+
                 print("Track title: (in user_handler)", data.get("track_title"))
 
                 await message.answer(f"{data.get("track_title")}\n"
