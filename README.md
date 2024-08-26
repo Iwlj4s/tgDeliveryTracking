@@ -1,5 +1,3 @@
-# Telegram Delivery Tracking
-
 # Telegram Bot for Package Tracking
 
 This project is a Telegram bot that helps users track their packages using data from the "Pochta Rossii" website (www.pochta.ru).
@@ -8,7 +6,7 @@ This project is a Telegram bot that helps users track their packages using data 
 ## Important Note
 For now I do not plan to purchase hosting for this project.
 
-If you want check how bot working - check this video on YouTub 
+If you want check how bot working - check this video on YouTub https://youtu.be/9nMoj6PoQG0
 
 ## Description
 The bot combines a "Pochta Rossii" parser with a Telegram interface, allowing users to easily get information about their packages through chat. 
