@@ -36,7 +36,6 @@ class ParsSettings:
         self.user_track_input = None
         self.user_track_find_button = None
 
-        # I guess I delete this const next time, but for now it's will be here #
         self.pochta_ru_tracking_region = None  # If region == Russia -> track number consist of 14 digits, if region
         # == International -> track number consist of 13 characters
 
@@ -100,7 +99,7 @@ class GetUserData(ParsSettings):
         if track_number_check(user_track_numbers=user_tracking_numbers,
                               track_numbers_amount=self.pochta_ru_tracking_numbers_amount):
             print("In main pars, user_tracking_numbers: ", user_tracking_numbers)
-            self.user_tracking_numbers = str(user_tracking_numbers)  # Исправлено
+            self.user_tracking_numbers = str(user_tracking_numbers)
             return True
 
         else:
@@ -243,7 +242,7 @@ class Driver(GetUserData, ParsSettings):
         # 4. Enter in input user tracking digits
         self.enter_in_input_tracking_digits(user_tracking_numbers=user_tracking_numbers)
 
-        time.sleep(3)
+        time.sleep(2)
 
         # 5. Get new HTML content
 
