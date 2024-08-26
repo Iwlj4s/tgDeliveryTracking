@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.orm_query import orm_get_track_id, orm_get_user_id
+from database.orm_query import orm_get_user_id
 
 
 def track_number_check(user_track_numbers: str, track_numbers_amount: int):

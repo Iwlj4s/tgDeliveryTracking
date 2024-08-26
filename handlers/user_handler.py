@@ -11,14 +11,14 @@ from aiogram.types import Message, CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from checks.user_check import track_number_check, track_already_in_db
-# My Imports #
 
+# My Imports #
 # keyboards
 from keyboards.inline import get_callback_btns
 
 from keyboards.reply import main_keyboard, choose_track_website_keyboard, choose_delivery_region_keyboard, \
     cancel_keyboard, skip_keyboard, cancel_back_skip_keyboard, change_track_website_keyboard, \
-    change_delivery_region_keyboard
+    change_delivery_region_keyboard, back_keyboard, choose_track_website_keyboard_add
 
 # data
 from data.parsing.main_pars import ParsSettings
@@ -62,7 +62,7 @@ async def cancel_handler(message: Message, state: FSMContext):
 async def back_handler(message: Message, state: FSMContext):
     current_state = await state.get_state()
 
-    if current_state == GetTrack.user_description:
+    if current_state == get_track_states.user_description:
         await message.answer("Предыдущего шага нет\n"
                              "Введите название мероприятия или нажмите 'отмена' ")
         return
@@ -70,9 +70,31 @@ async def back_handler(message: Message, state: FSMContext):
     previous_state = None
     for step in GetTrack.__all_states__:
         if step.state == current_state:
+            print(f"Current state: {previous_state.state}")
             await state.set_state(previous_state.state)
+            current_keyboard = main_keyboard
+
+            if previous_state.state == get_track_states.user_description:
+                current_keyboard = skip_keyboard
+
+            elif previous_state.state == get_track_states.user_delivery_service:
+                if get_track_states.track_for_change:
+                    current_keyboard = change_track_website_keyboard
+                elif get_track_states.track_for_change is None:
+                    current_keyboard = choose_track_website_keyboard_add
+
+            elif previous_state.state == get_track_states.user_delivery_region:
+                if get_track_states.track_for_change:
+                    current_keyboard = change_delivery_region_keyboard
+                elif get_track_states.track_for_change is None:
+                    current_keyboard = choose_delivery_region_keyboard
+
+            elif previous_state.state == get_track_states.user_track:
+                current_keyboard = back_keyboard
+            
             await message.answer(f"Вы вернулись к предыдущему шагу\n"
-                                 f"{GetTrack.texts[previous_state.state]}")
+                                 f"{get_track_states.texts[previous_state.state]}",
+                                 reply_markup=current_keyboard)
             return
         previous_state = step
 
@@ -100,6 +122,7 @@ async def get_my_tracks(message: Message, session: AsyncSession):
 async def track_user_track(callback: CallbackQuery, session: AsyncSession):
     track_id = callback.data.split("_")[-1]
 
+    await callback.message.answer("Получаем данные о посылке...")
     user_track = await orm_get_user_track(session=session, track_id=int(track_id))
 
     data = get_track_data_for_user(
@@ -154,7 +177,8 @@ async def add_track_in_my_tracks(message: Message, state: FSMContext):
                              reply_markup=skip_keyboard)
 
     else:
-        await message.answer("Введите описание трек номера, например чехол для телефона")
+        await message.answer("Введите описание трек номера, например чехол для телефона",
+                             reply_markup=skip_keyboard)
 
     # Go to get track description #
     await state.set_state(get_track_states.user_description)
@@ -168,7 +192,7 @@ async def get_user_description(message: Message, state: FSMContext):
         if get_track_states.track_for_change is None:  # If user not changing track and want just skip description
             await state.update_data(user_description="Описание не добавлено")
             await message.answer("Выберите где вы хотите отслеживать посылку",
-                                 reply_markup=change_track_website_keyboard)
+                                 reply_markup=choose_track_website_keyboard_add)
 
         elif get_track_states.track_for_change:  # If user changing track and want leave same value
             await state.update_data(user_description=get_track_states.track_for_change.user_description)
@@ -291,7 +315,7 @@ async def get_user_delivery_region(message: Message, state: FSMContext):
         print(message.text.lower())
 
         await message.answer("Введите трек номер: ",
-                             reply_markup=cancel_keyboard)
+                             reply_markup=back_keyboard)
 
     # Go to get user's track state #
     await state.set_state(get_track_states.user_track)

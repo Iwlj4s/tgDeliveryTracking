@@ -30,6 +30,15 @@ skip_keyboard = ReplyKeyboardMarkup(
     ]
 )
 
+back_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Изменить предыдущее поле"),
+            KeyboardButton(text="Отмена")
+        ]
+    ]
+)
+
 cancel_back_skip_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [
@@ -50,10 +59,6 @@ choose_track_website_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [
             KeyboardButton(text="Почта России"),
-        ],
-
-        [
-            KeyboardButton(text="Изменить предыдущее поле")
         ],
 
         [
@@ -114,6 +119,23 @@ change_delivery_region_keyboard = ReplyKeyboardMarkup(
 
         [
             KeyboardButton(text="Изменить предыдущее поле")
+        ],
+
+        [
+            KeyboardButton(text="Отмена"),  # Cancel Button
+        ]
+    ]
+)
+
+# KEYBOARD FOR ADD TRACK #
+choose_track_website_keyboard_add = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Почта России"),
+        ],
+
+        [
+            KeyboardButton(text="Изменить предыдущее поле"),
         ],
 
         [
