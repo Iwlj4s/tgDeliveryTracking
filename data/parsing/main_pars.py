@@ -119,7 +119,7 @@ class Driver(GetUserData, ParsSettings):
         self.chrome_options.add_argument("--disable-web-security")
         self.chrome_options.add_argument("--incognito")
 
-        # self.chrome_options.add_argument("--headless")  # background start
+        self.chrome_options.add_argument("--headless")  # background start
 
         self.user_track_input = None
         self.user_track_find_button = None

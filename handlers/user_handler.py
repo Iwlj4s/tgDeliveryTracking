@@ -80,8 +80,10 @@ async def back_handler(message: Message, state: FSMContext):
             elif previous_state.state == get_track_states.user_delivery_service:
                 if get_track_states.track_for_change:
                     current_keyboard = change_track_website_keyboard
-                elif get_track_states.track_for_change is None:
+                elif get_track_states.user_add_track:
                     current_keyboard = choose_track_website_keyboard_add
+                elif get_track_states.track_for_change is None and not get_track_states.user_add_track:
+                    current_keyboard = choose_track_website_keyboard
 
             elif previous_state.state == get_track_states.user_delivery_region:
                 if get_track_states.track_for_change:
@@ -324,7 +326,6 @@ async def get_user_delivery_region(message: Message, state: FSMContext):
 # Get user's track
 @user_private_router.message(get_track_states.user_track, or_f(F.text, F.text == "Пропустить поле"))
 async def get_user_track(message: Message, state: FSMContext, session: AsyncSession):
-    # TODO: do some refactoring
     if message.text == "Пропустить поле":
         if get_track_states.track_for_change is not None:  # If user changing track and want leave same value
             await state.update_data(user_track=get_track_states.track_for_change.user_track)
@@ -332,6 +333,8 @@ async def get_user_track(message: Message, state: FSMContext, session: AsyncSess
 
             track_id = get_track_states.track_for_change.id
             data = await state.get_data()
+
+            await message.answer("Изменяем данные трека номера...")
 
             # Update track data
             await orm_update_track(session=session, track_id=int(track_id), data=data)
@@ -365,12 +368,15 @@ async def get_user_track(message: Message, state: FSMContext, session: AsyncSess
                     return
 
                 else:
+                    await message.answer("Добавляем трек в 'мои треки'...")
                     await orm_add_user_track(session=session, data=get_data, message=message)
 
                     await message.answer("Трек номер добавлен в 'мои треки'",
                                          reply_markup=main_keyboard)
 
             elif not get_track_states.user_add_track:
+                await message.answer("Получаем данные о посылке...")
+
                 data = get_track_data_for_user(
                     user_url=get_data.get("user_delivery_service"),
                     user_track_region=get_data.get("user_delivery_region"),
