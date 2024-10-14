@@ -351,8 +351,7 @@ async def get_user_track(message: Message, state: FSMContext, session: AsyncSess
 
         get_data = await state.get_data()
 
-        if not track_number_check(user_track_numbers=str(get_data.get("user_track")),
-                                  track_numbers_amount=get_data.get("numbers_amount")):
+        if not track_number_check(user_track_numbers=str(get_data.get("user_track"))):
 
             await message.answer(pars_settings.track_number_error,
                                  reply_markup=cancel_keyboard)
