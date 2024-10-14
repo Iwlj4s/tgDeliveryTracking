@@ -3,14 +3,7 @@ import logging
 import time
 import sys
 import os
-
-from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
-
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
+import aiohttp
 
 from bs4 import BeautifulSoup
 
@@ -27,6 +20,9 @@ class ParsSettings:
     def __init__(self) -> None:
         self.pochta_ru_url = "https://www.pochta.ru/tracking"  # "Pochta ru" tracking web site
         # self.seventeen_track_url = "https://m.17track.net/ru/"  # 17Track tracking website
+
+        self.search_url = ""
+        self.search_query = ""
 
         self.allowed_developing_services = ["почта россии"]
         self.allowed_tracking_regions = ["россия", "международный"]
@@ -57,6 +53,11 @@ class ParsSettings:
             "Для международных — из 13 символов, в нём используются латинские заглавные буквы и цифры.\n"
             "\nВведите трек-номер заново")
 
+        self.driver = None
+        self.response = None
+        self.html = None
+        self.soup = None
+
 
 class GetUserData(ParsSettings):
     def __init__(self):
@@ -65,16 +66,19 @@ class GetUserData(ParsSettings):
 
         # Getting User's URL #
         # What delivery use?
-    def get_user_url(self, user_url: str):
+
+    async def get_user_url(self, user_url: str):
         user_url = user_url.strip().lower()
         logger.info(f"User inputted url: '{user_url}'")
 
         if user_url == "почта россии":
             self.user_tracking_url = self.pochta_ru_url
+            self.search_url = self.pochta_ru_url + "?barcode="
             logger.info(f"New URL: {self.user_tracking_url}")
 
         else:
             self.user_tracking_url = ""
+            self.search_url = ""
             self.user_data = {"error": self.unknown_developer_service}
 
             return False
@@ -83,7 +87,7 @@ class GetUserData(ParsSettings):
 
     # Get ! amount ! tracking numbers for Pochta ru #
     # If delivery == Pochta ru -> getting track region (ru / international)
-    def get_user_track_region(self, user_track_region: str) -> str:
+    async def get_user_track_region(self, user_track_region: str) -> str:
         if str(user_track_region) == str("россия").lower():
             self.pochta_ru_tracking_region = str("ru")
             self.pochta_ru_tracking_numbers_amount = int(14)
@@ -95,11 +99,13 @@ class GetUserData(ParsSettings):
         return self.pochta_ru_tracking_region
 
     # Getting user tracking numbers
-    def get_user_tracking_numbers(self, user_tracking_numbers: str):
+    async def get_user_tracking_numbers(self, user_tracking_numbers: str):
         if track_number_check(user_track_numbers=user_tracking_numbers,
                               track_numbers_amount=self.pochta_ru_tracking_numbers_amount):
             print("In main pars, user_tracking_numbers: ", user_tracking_numbers)
             self.user_tracking_numbers = str(user_tracking_numbers)
+            self.search_url = self.search_url + str(self.user_tracking_numbers.upper())
+            print("SEARCH URL IN TN", self.search_url)
             return True
 
         else:
@@ -108,153 +114,32 @@ class GetUserData(ParsSettings):
             return False
 
 
-class Driver(GetUserData, ParsSettings):
-    def __init__(self) -> None:
-        super().__init__()
+class Parser(GetUserData, ParsSettings):
+    async def get_html_page_with_user_track_data(self, user_url: str,
+                                                 user_track_region: str,
+                                                 user_tracking_numbers: str):
+        async with aiohttp.ClientSession() as session:
+            self.user_tracking_url = await self.get_user_url(user_url=str(user_url))
+            if not self.user_tracking_url:
+                return self.user_data.get("error")
 
-        self.chrome_options = Options()
-        self.chrome_options.add_argument('--ignore-certificate-errors')
-        self.chrome_options.add_argument("--allow-running-insecure-content")
-        self.chrome_options.add_argument("--allow-insecure-localhost")
-        self.chrome_options.add_argument("--disable-web-security")
-        self.chrome_options.add_argument("--incognito")
+            self.get_user_track_region = await self.get_user_track_region(str(user_track_region))
 
-        self.chrome_options.add_argument("--headless")  # background start
+            if not await self.get_user_tracking_numbers(user_tracking_numbers=str(user_tracking_numbers)):
+                return self.user_data.get("error")
 
-        self.user_track_input = None
-        self.user_track_find_button = None
+            print("SEARCH URL IN SESSION: ", self.search_url)
 
-        self.driver = None
-        self.response = None
-        self.new_html = None
-        self.soup = None
+            async with session.get(self.search_url) as response:
+                self.response = response
+                self.html = await response.text()
 
-        self.developer_service_error = "Unknown developer service"
+                self.soup = BeautifulSoup(self.html, "lxml")
 
-    # DRIVER INIT #
-    def initialize_driver(self):
-        try:
-            self.driver = webdriver.Chrome(options=self.chrome_options)
-            self.driver.set_page_load_timeout(30)
-            logger.info("WebDriver successfully init")
-        except Exception as e:
-            logger.error(f"Init Error WebDriver: {e}")
-            raise
-
-    # DRIVER QUIT
-    def quit_driver(self):
-        if self.driver:
-            try:
-                self.driver.quit()
-            except Exception as e:
-                logger.warning(f"Close Driver Error: {e}")
-            finally:
-                self.driver = None
-
-    # Load components func
-    def load_components(self):
-        # If user url = Pochta ru #
-        if self.user_tracking_url == self.pochta_ru_url:
-            # Wait Input
-            self.user_track_input = WebDriverWait(self.driver, 3).until(
-                EC.presence_of_element_located((By.ID, "tracking-toolbar__search-input"))
-            )
-            logger.info("Input find")
-
-            # Wait search button
-            self.user_track_find_button = WebDriverWait(self.driver, 3).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='tracking.search-button']"))
-            )
-            logger.info("Button find")
-
-    def open_url(self):
-        try:
-            if not self.driver:
-                self.initialize_driver()
-            logger.info(f"Try to open URL: {self.user_tracking_url}")
-            self.driver.get(self.user_tracking_url)
-
-            WebDriverWait(self.driver, 30).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
-            )
-            logger.info("Page successfully load")
-
-        except TimeoutException:
-            logger.error("Time out page / components load")
-            self.driver.quit()
-            return None
-
-        except Exception as e:
-            logger.error(f"Page load Error: {e}")
-            self.driver.quit()
-            return None
-
-    # Enter in input user tracking digits
-    def enter_in_input_tracking_digits(self, user_tracking_numbers: str):
-        try:
-            # self.user_track_input.clear()
-            self.user_track_input.send_keys(user_tracking_numbers)
-
-            time.sleep(2)
-
-            logger.info(f"User inputted TRACK: {user_tracking_numbers}")
-
-            self.user_track_find_button.click()
-            logger.info("Search Button")
-
-            time.sleep(2)
-
-        except Exception as e:
-            logger.error(f"Track Input Error: {e}")
-
-    # Get new html page with tracking info
-    def get_html_page_with_tracking_info(self, user_url: str,
-                                         user_track_region: str,
-                                         user_tracking_numbers: str):
-
-        # 1. What delivery use? (Pochta ru / Other)
-        self.user_tracking_url = self.get_user_url(user_url=str(user_url))
-        if not self.user_tracking_url:
-            return self.user_data.get("error")
-
-        # Open URL
-        self.open_url()
-
-        # loading input and search button
-        self.load_components()
-
-        try:
-            self.response = requests.get(self.user_tracking_url)
-            logger.info(f"Successfully request to {self.user_tracking_url}")
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Eror request: {e}")
-
-            return None
-
-        # 2. If delivery == Pochta ru -> getting track region (ru / international)
-        self.get_user_track_region = self.get_user_track_region(str(user_track_region))
-
-        # 3. Getting user tracking numbers (Pochta ru / Other)
-        if not self.get_user_tracking_numbers(user_tracking_numbers=str(user_tracking_numbers)):  # Исправлено
-            return self.user_data.get("error")  # Исправлено
-
-        # 4. Enter in input user tracking digits
-        self.enter_in_input_tracking_digits(user_tracking_numbers=user_tracking_numbers)
-
-        time.sleep(2)
-
-        # 5. Get new HTML content
-
-        self.new_html = self.driver.page_source
-        self.soup = BeautifulSoup(self.new_html, "lxml")
-
-        self.quit_driver()
-
-        return self.soup
+                return self.soup
 
 
-class GetTrackData(Driver, ParsSettings):
+class GetTrackData(Parser, ParsSettings):
     def __init__(self) -> None:
         super().__init__()
         self.track_title = None
@@ -266,7 +151,7 @@ class GetTrackData(Driver, ParsSettings):
         self.track_info_description = None
 
     # Get Data For Pochta Ru #
-    def get_pochta_ru_data(self):
+    async def get_pochta_ru_data(self):
 
         # Track title
         self.track_title = self.soup.find('div', class_='hubGBa')
@@ -293,11 +178,11 @@ class GetTrackData(Driver, ParsSettings):
             self.track_info_description = self.track_info.find('p', class_='gPYwYo')
             self.track_info_description = self.track_info_description.text if self.track_info_description else None
 
-    def get_track_data(self, user_url: str,
-                       user_track_region: str,
-                       user_tracking_numbers: str):
+    async def get_track_data(self, user_url: str,
+                             user_track_region: str,
+                             user_tracking_numbers: str):
         try:
-            self.soup = self.get_html_page_with_tracking_info(
+            self.soup = await self.get_html_page_with_user_track_data(
                 user_url=str(user_url),
                 user_track_region=str(user_track_region),
                 user_tracking_numbers=str(user_tracking_numbers)
@@ -307,7 +192,7 @@ class GetTrackData(Driver, ParsSettings):
 
                 # Get POCHTA RU data #
                 if self.user_tracking_url == self.pochta_ru_url:
-                    self.get_pochta_ru_data()
+                    await self.get_pochta_ru_data()
 
                     self.user_data = {
                         "track_title": self.track_title,
@@ -327,5 +212,4 @@ class GetTrackData(Driver, ParsSettings):
                 logger.error("Can't response HTML")
         except Exception as e:
             logger.error(f"Error response data: {e}")
-        finally:
-            self.quit_driver()
+

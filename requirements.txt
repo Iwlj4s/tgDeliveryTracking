@@ -1,6 +1,6 @@
 python-dotenv
 aiogram
-selenium
+aiohttp
 beautifulsoup4
 requests
 lxml
