@@ -4,14 +4,6 @@ from database.orm_query import UserTrackORM
 
 
 async def track_number_check(user_track_numbers: str):
-    """
-    :param user_track_numbers:
-    :return:
-
-    ! Track number of an international postal item contains 13 characters !
-    ! The track number of a domestic postal item usually consists of 13 characters
-    (the domestic identifier consists of 14 digits). !
-    """
     print(f"Check, user_track_numbers: {user_track_numbers}")
 
     if len(str(user_track_numbers)) >= 6:

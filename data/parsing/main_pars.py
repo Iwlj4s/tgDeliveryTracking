@@ -108,7 +108,7 @@ class GetTrackData(Parser, ParsSettings):
                     if event_location:
                         self.track_location = event_location["address"]
                     else:
-                        self.track_location = "Локация трека не доступна"
+                        self.track_location = "Локация посылки недоступна"
 
                     self.track_item_name = self.info["ComplexItem"]
 
@@ -145,10 +145,8 @@ class GetTrackData(Parser, ParsSettings):
                 }
                 return self.user_data
             else:
-                print("error: ", self.user_data.get("error"))
                 return self.user_data.get("error")
 
         except Exception as e:
             logger.error(f"Error response data: {e}")
-            print("error in last exept: ", self.user_data.get("error"))
             return self.user_data.get("error")
