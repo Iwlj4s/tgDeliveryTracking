@@ -1,17 +1,15 @@
 # Telegram Bot for Package Tracking
 
-This project is a Telegram bot that helps users track their packages using data from the "Pochta Rossii" website (www.pochta.ru).
+This project is a Telegram bot that helps users track their packages using data from the "1Track" website (https://1track.ru/).
 
 
 ## Important Note
 For now I do not plan to purchase hosting for this project.
 
-If you want check how bot working - check this video on YouTub https://youtu.be/9nMoj6PoQG0
-
 ## Description
-The bot combines a "Pochta Rossii" parser with a Telegram interface, allowing users to easily get information about their packages through chat. 
+The bot combines a "1Track" parser with a Telegram interface, allowing users to easily get information about their packages through chat. 
 
-It uses <a href="https://selenium-python.readthedocs.io/getting-started.html">Selenium WebDriver</a> and  <a href="https://pypi.org/project/beautifulsoup4/">BeautifulSoup</a> for web scraping, as well as the Telegram library <a href="aiogram">aiogram</a> for bot functionality.
+It uses <a href="https://selenium-python.readthedocs.io/getting-started.html">aiohttp</a> for web scraping, as well as the Telegram library <a href="aiogram">aiogram</a> for bot functionality.
 
 Users can track their packages without necessarily adding them to the database, but they also have the option to:
 
@@ -25,16 +23,8 @@ Users can track their packages without necessarily adding them to the database, 
 - **Add Tracks**: Users have the option to add their tracks to the database.
 - **Change and Delete Tracks**: Users can modify or remove their tracks from the database.
 
-## Components
-- **"Pochta Rossii" Parser**
-  - `ParsSettings`: Contains basic settings and dictionaries for tracking.
-  - `Driver`: Manages Selenium WebDriver for web interactions.
-  - `GetTrackData`: Extracts and processes package data from the "Pochta Rossii" website.
-
-
 - **Database Management**
   - Utilizes  <a href="https://www.sqlalchemy.org/">SQLAlchemy</a> for handling user tracks in the SQLite database.
-
 
 - **Telegram Bot Interface**
   - Implements an intuitive button-based interface for user interactions.
