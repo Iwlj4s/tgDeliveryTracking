@@ -3,13 +3,13 @@ from data.parsing.main_pars import GetTrackData
 
 async def get_track_data_for_user(user_tracking_numbers: str):
     track_data = GetTrackData()
-    await track_data.get_track_data(user_tracking_numbers=user_tracking_numbers)
+    await track_data.get_track_data(user_tracking_numbers=str(user_tracking_numbers))
 
-    return track_data.user_data
+    return track_data
 
 
 async def main():
-    user_tracking_numbers_input = str("ZA271313095CN")
+    user_tracking_numbers_input = str("fds5").upper()
 
     track_data = GetTrackData()
     await track_data.get_track_data(user_tracking_numbers=str(user_tracking_numbers_input))

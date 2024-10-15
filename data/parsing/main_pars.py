@@ -1,6 +1,5 @@
 import logging
-import sys
-import os
+
 import aiohttp
 
 # My Imports #
@@ -22,6 +21,10 @@ class ParsSettings:
 
         self.response = None
 
+        self.track_number_error = str(
+            "Ваш трек номер содержит ошибку, пожалуйста проверьте его.\n"
+            "Трек номер должен содержать от 6 символов/цифр, символов И цифр")
+
 
 class GetUserData(ParsSettings):
     def __init__(self):
@@ -33,19 +36,19 @@ class GetUserData(ParsSettings):
         if await track_number_check(user_track_numbers=str(user_tracking_numbers)):
             print("In main pars, user_tracking_numbers: ", user_tracking_numbers)
             self.user_tracking_numbers = str(user_tracking_numbers)
-            self.search_url = self.one_track_url + str(self.user_tracking_numbers) + "&new=true"
             return True
 
         else:
             self.user_tracking_numbers = None
-            self.user_data = {"error": "Что-то не так с трек номером, пожалуйста перепроверьте его"}
+            self.user_data = {"error": self.track_number_error}
             return False
 
 
 class Parser(GetUserData, ParsSettings):
     async def get_ajax_track_data(self, user_tracking_numbers: str):
         async with aiohttp.ClientSession() as session:
-            async with session.get(self.search_url + user_tracking_numbers + "&new=true") as response:
+            async with session.get(self.one_track_url + user_tracking_numbers + "&new=true") as response:
+                print(self.one_track_url + user_tracking_numbers + "&new=true")
                 if response.status == 200:
                     self.response = await response.json()
                     print(self.response)
@@ -80,25 +83,32 @@ class GetTrackData(Parser, ParsSettings):
 
         if self.response is not None:
             print(self.response)
-            data = self.response["data"]
+            data = self.response.get("data", {})
             if data:
+                if data.get("status") == "error" or data.get("status") == "False" or not data.get("status"):
+                    error_message = data.get("error", "Неизвестная ошибка")
+                    self.user_data = {"error": f"К сожалению, мы не можем отследить этот трек номер: {error_message}"}
+
                 self.track_numbers = data["trackcode"]
                 self.track_status = data["status"]
 
                 self.origin_country = data["origin_country"]
                 self.destination_country = data["destination_country"]
-                if self.track_status:
-                    self.info = data["info"]
 
-                    events = data.get("events", [])
-                    if events:
-                        last_event = events[0]
-                        self.track_last_event = last_event
-                        self.track_status = last_event["attribute"]  # Получаем статус из последнего события
-                        self.track_status_date = last_event["date"]  # Получаем дату из последнего события
+                self.info = data["info"]
 
-                        event_location = self.track_last_event["location"]
+                events = data.get("events", [])
+                if events:
+                    last_event = events[0]
+                    self.track_last_event = last_event
+                    self.track_status = last_event["attribute"]
+                    self.track_status_date = last_event["date"]
+
+                    event_location = self.track_last_event.get("location")
+                    if event_location:
                         self.track_location = event_location["address"]
+                    else:
+                        self.track_location = "Локация трека не доступна"
 
                     self.track_item_name = self.info["ComplexItem"]
 
@@ -107,11 +117,13 @@ class GetTrackData(Parser, ParsSettings):
                     self.track_recipient_address = self.info["AddressTo"]
 
                 else:
-                    self.user_data = {"error": "К сожалению мы не можем отследить этот трек номер"}
+                    self.user_data = {"error": self.track_number_error}
 
             else:
+                self.user_data = {"error": self.track_number_error}
                 logger.error("No data found in response")
         else:
+            self.user_data = {"error": self.track_number_error}
             logger.error("Response is None, cannot get data")
 
     async def get_track_data(self, user_tracking_numbers: str):
@@ -133,7 +145,10 @@ class GetTrackData(Parser, ParsSettings):
                 }
                 return self.user_data
             else:
-                return self.user_data["error"]
+                print("error: ", self.user_data.get("error"))
+                return self.user_data.get("error")
 
         except Exception as e:
             logger.error(f"Error response data: {e}")
+            print("error in last exept: ", self.user_data.get("error"))
+            return self.user_data.get("error")

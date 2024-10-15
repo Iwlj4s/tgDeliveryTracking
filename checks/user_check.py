@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.orm_query import orm_get_user_id
+from database.orm_query import UserTrackORM
 
 
 async def track_number_check(user_track_numbers: str):
@@ -14,7 +14,7 @@ async def track_number_check(user_track_numbers: str):
     """
     print(f"Check, user_track_numbers: {user_track_numbers}")
 
-    if (len(str(user_track_numbers)) >= 13) and (len(str(user_track_numbers)) <= 14):
+    if len(str(user_track_numbers)) >= 6:
         print(True)
         return True
 
@@ -24,7 +24,7 @@ async def track_number_check(user_track_numbers: str):
 
 
 async def track_already_in_db(track_number: str, user_id: int, session: AsyncSession):
-    user_tracks = await orm_get_user_id(session=session, user_id=int(user_id))
+    user_tracks = await UserTrackORM.get_user_id(session=session, user_id=int(user_id))
     print(user_tracks)
 
     for track in user_tracks:
