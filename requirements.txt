@@ -1,7 +1,5 @@
 python-dotenv
 aiogram
-selenium
-beautifulsoup4
-requests
+aiohttp
 lxml
 sqlalchemy

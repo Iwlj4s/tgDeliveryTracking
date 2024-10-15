@@ -19,7 +19,7 @@ from middlewares.db import DataBaseSession
 
 token = os.getenv("TOKEN")
 
-bot = Bot(token=token, proxy='http://proxy.server:3128')
+bot = Bot(token=token)
 dp = Dispatcher()
 
 dp.include_router(user_private_router)
